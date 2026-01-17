@@ -6,8 +6,10 @@ enum Constants {
     // MARK: - API Configuration
     enum API {
         /// Base URL for the backend API
-        /// TODO: Update with actual backend URL when available
-        static let baseURL = "https://api.example.com"
+        static let baseURL = "https://breath-tracking-app-production.up.railway.app"
+        
+        /// API version prefix
+        static let apiVersion = "/api/v1"
         
         /// Endpoint for fetching latest breathing data
         static let latestDataEndpoint = "/breathing/latest"
@@ -17,12 +19,17 @@ enum Constants {
         
         /// Full URL for latest data
         static var latestDataURL: URL? {
-            URL(string: baseURL + latestDataEndpoint)
+            URL(string: baseURL + apiVersion + latestDataEndpoint)
         }
         
         /// Full URL for history data
         static var historyURL: URL? {
-            URL(string: baseURL + historyEndpoint)
+            URL(string: baseURL + apiVersion + historyEndpoint)
+        }
+        
+        /// Health check URL
+        static var healthURL: URL? {
+            URL(string: baseURL + apiVersion + "/health")
         }
     }
     
@@ -38,8 +45,7 @@ enum Constants {
     // MARK: - WebSocket Configuration
     enum WebSocket {
         /// WebSocket URL for real-time data
-        /// TODO: Update with actual WebSocket URL when available
-        static let url = "wss://api.example.com/breathing/stream"
+        static let url = "wss://breath-tracking-app-production.up.railway.app/ws/v1/breathing"
     }
     
     // MARK: - Alarm Configuration
