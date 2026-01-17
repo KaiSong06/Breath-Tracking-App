@@ -38,14 +38,14 @@ export type HistoryQuery = z.infer<typeof HistoryQuerySchema>;
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
-  error?: ApiError;
+  error?: ApiErrorBody;
   timestamp: number;
 }
 
 /**
- * API error structure
+ * API error structure in responses
  */
-export interface ApiError {
+export interface ApiErrorBody {
   code: string;
   message: string;
   details?: Record<string, unknown>;
