@@ -30,7 +30,7 @@ export const config = {
     sampleBufferSize: parseInt(process.env.SAMPLE_BUFFER_SIZE || '40', 10),
     
     /** Minimum peak prominence to detect a breath (ADC units, higher = less sensitive) */
-    peakProminence: parseInt(process.env.PEAK_PROMINENCE || '120', 10),
+    peakProminence: parseInt(process.env.PEAK_PROMINENCE || '300', 10),
     
     /** Minimum time between peaks (ms) - 2500ms = max 24 breaths/min */
     minPeakDistanceMs: parseInt(process.env.MIN_PEAK_DISTANCE_MS || '2500', 10),

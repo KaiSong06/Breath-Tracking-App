@@ -34,9 +34,24 @@ export class PeakDetector {
 
     // Sort by timestamp
     const sorted = [...samples].sort((a, b) => a.timestamp - b.timestamp);
+    const values = sorted.map(s => s.rawValue);
     
-    // Apply simple moving average smoothing
-    const smoothed = this.smooth(sorted.map(s => s.rawValue), 3);
+    // Check if signal has enough variation to contain real breaths
+    // If the total range is too small, it's just noise - no breaths
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    const signalRange = maxVal - minVal;
+    
+    // Require at least 500 ADC units of range (about half the 10-bit ADC range)
+    // This filters out electrical noise which can be 200-300 units
+    const minRequiredRange = Math.max(500, this.minProminence * 2);
+    if (signalRange < minRequiredRange) {
+      // Signal is too flat - no real breathing detected
+      return { peaks: [], valleys: [] };
+    }
+    
+    // Apply simple moving average smoothing (window of 5 for more smoothing)
+    const smoothed = this.smooth(values, 5);
     
     // Find all local maxima and minima
     const rawPeaks = this.findLocalMaxima(smoothed, sorted);
