@@ -17,6 +17,10 @@
  *   3 - Network initialization error
  */
 
+// Feature test macros must come before any includes
+#define _QNX_SOURCE
+#define _POSIX_C_SOURCE 200809L
+
 #include "Mcp3008.hpp"
 #include "RestClient.hpp"
 
@@ -25,6 +29,7 @@
 #include <cstring>
 #include <csignal>
 #include <unistd.h>
+#include <time.h>
 #include <iomanip>
 #include <sstream>
 
@@ -45,7 +50,7 @@ namespace {
     constexpr int DEFAULT_POLL_INTERVAL_MS = 500;
     
     /// API endpoint for posting sensor data
-    constexpr const char* API_ENDPOINT = "/";
+    constexpr const char* API_ENDPOINT = "/api/v1/breathing/raw";
     
     /// Flag for graceful shutdown
     volatile sig_atomic_t g_running = 1;
@@ -109,6 +114,17 @@ void logInfo(const std::string& message) { logMessage("INFO", message); }
 void logError(const std::string& message) { logMessage("ERROR", message); }
 void logWarn(const std::string& message) { logMessage("WARN", message); }
 
+/**
+ * @brief Sleep for specified milliseconds (portable replacement for usleep)
+ * @param milliseconds Time to sleep in milliseconds
+ */
+void sleepMs(int milliseconds) {
+    struct timespec ts;
+    ts.tv_sec = milliseconds / 1000;
+    ts.tv_nsec = (milliseconds % 1000) * 1000000L;
+    nanosleep(&ts, nullptr);
+}
+
 int main() {
     // Setup signal handlers for graceful shutdown
     std::signal(SIGINT, signalHandler);
@@ -162,9 +178,6 @@ int main() {
     
     logInfo("Starting main loop (poll interval: " + std::to_string(pollIntervalMs) + " ms)");
     
-    // Calculate sleep time in microseconds
-    useconds_t sleepUs = static_cast<useconds_t>(pollIntervalMs) * 1000;
-    
     // Main polling loop
     uint32_t sampleCount = 0;
     uint32_t errorCount = 0;
@@ -202,7 +215,7 @@ int main() {
                 // If too many consecutive errors, slow down
                 if (errorCount > 10) {
                     logWarn("Multiple errors, backing off...");
-                    usleep(5000000);  // 5 second backoff
+                    sleepMs(5000);  // 5 second backoff
                     errorCount = 0;
                 }
             }
@@ -213,7 +226,7 @@ int main() {
         }
         
         // Sleep until next poll
-        usleep(sleepUs);
+        sleepMs(pollIntervalMs);
     }
     
     logInfo("Shutting down after " + std::to_string(sampleCount) + " samples");
