@@ -1,33 +1,40 @@
 import { Router, Request, Response } from 'express';
 import { breathingService } from '../services';
 import { 
-  deviceAuth, 
   validateBody, 
   validateQuery, 
   asyncHandler 
 } from '../middleware';
 import { 
-  RawBreathSampleSchema, 
+  HardwareBreathSampleSchema, 
   HistoryQuerySchema,
   type ApiResponse,
   type RawSampleResponse,
   type LatestSampleResponse,
   type HistoryResponse,
+  type RawBreathSample,
 } from '../types';
 
 const router = Router();
 
 /**
  * POST /api/v1/breathing/raw
- * Receive raw breath sample from device
- * Requires X-Device-Key header
+ * Receive raw breath sample from hardware device
+ * Accepts simplified payload: { raw: number, voltage: number }
+ * Device ID and timestamp are added server-side
  */
 router.post(
   '/raw',
-  deviceAuth,
-  validateBody(RawBreathSampleSchema),
+  validateBody(HardwareBreathSampleSchema),
   asyncHandler(async (req: Request, res: Response) => {
-    const { processed, alert } = await breathingService.processRawSample(req.body);
+    // Transform hardware payload to internal format
+    const internalSample: RawBreathSample = {
+      deviceId: 'rpi-breath-sensor',
+      timestamp: Math.floor(Date.now() / 1000),
+      rawValue: req.body.raw,
+    };
+
+    const { processed, alert } = await breathingService.processRawSample(internalSample);
 
     const response: ApiResponse<RawSampleResponse> = {
       success: true,

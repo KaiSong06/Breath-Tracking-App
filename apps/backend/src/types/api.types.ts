@@ -19,6 +19,17 @@ export const RawBreathSampleSchema = z.object({
 export type RawBreathSampleRequest = z.infer<typeof RawBreathSampleSchema>;
 
 /**
+ * Schema for hardware payload from Raspberry Pi
+ * Simpler format - deviceId and timestamp added server-side
+ */
+export const HardwareBreathSampleSchema = z.object({
+  raw: z.number().int().min(0).max(1023),      // 10-bit MCP3008 ADC range
+  voltage: z.number().min(0).max(3.3),          // Voltage reading (0-3.3V)
+});
+
+export type HardwareBreathSampleRequest = z.infer<typeof HardwareBreathSampleSchema>;
+
+/**
  * Schema for history query parameters
  */
 export const HistoryQuerySchema = z.object({
