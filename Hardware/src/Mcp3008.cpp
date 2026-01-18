@@ -2,8 +2,7 @@
  * @file Mcp3008.cpp
  * @brief MCP3008 ADC driver implementation for QNX Neutrino
  * 
- * Uses POSIX file I/O for SPI communication, compatible with QNX's
- * SPI resource manager without requiring platform-specific headers.
+ * Uses QNX io-spi devctl interface for proper full-duplex SPI communication.
  */
 
 // Feature test macros must come before any includes
@@ -15,10 +14,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <devctl.h>
 #include <errno.h>
 #include <cstring>
 #include <stdexcept>
-#include <vector>
+#include <cstdlib>
+
+// Include QNX SPI header for proper devctl definitions
+#include <hw/io-spi.h>
 
 namespace {
     /// Start bit for MCP3008 command
@@ -42,11 +45,6 @@ Mcp3008::Mcp3008(const std::string& spiDevice)
             std::strerror(errno)
         );
     }
-    
-    // Note: SPI configuration (mode, speed) is typically handled by
-    // the QNX SPI resource manager based on device configuration.
-    // If specific configuration is needed, it would be done via
-    // devctl() with appropriate commands for the specific SPI driver.
 }
 
 Mcp3008::~Mcp3008() {
@@ -83,36 +81,36 @@ void Mcp3008::configureSpi() {
 }
 
 void Mcp3008::spiTransfer(const uint8_t* txBuf, uint8_t* rxBuf, size_t length) {
-    // For QNX SPI resource manager, we perform a combined write/read operation.
-    // The SPI protocol is full-duplex, so we write and read simultaneously.
+    // Use QNX devctl for SPI data exchange
+    // spi_xchng_t has a flexible array member, so we allocate on stack with union
     
-    // Write command bytes
-    ssize_t bytesWritten = write(m_fd, txBuf, length);
-    if (bytesWritten < 0) {
-        throw std::runtime_error(
-            "SPI write failed: " + std::string(std::strerror(errno))
-        );
-    }
-    if (static_cast<size_t>(bytesWritten) != length) {
-        throw std::runtime_error(
-            "SPI write incomplete: wrote " + std::to_string(bytesWritten) + 
-            " of " + std::to_string(length) + " bytes"
-        );
+    if (length > 64) {
+        throw std::runtime_error("SPI transfer too large");
     }
     
-    // Read response bytes
-    ssize_t bytesRead = read(m_fd, rxBuf, length);
-    if (bytesRead < 0) {
+    // Create a buffer large enough for spi_xchng_t header + data
+    // Use a char array and cast to avoid flexible array issues
+    char buffer[sizeof(spi_xchng_t) + 64];
+    memset(buffer, 0, sizeof(buffer));
+    
+    spi_xchng_t* msg = reinterpret_cast<spi_xchng_t*>(buffer);
+    msg->nbytes = static_cast<uint32_t>(length);
+    memcpy(msg->data, txBuf, length);
+    
+    // Total size for devctl
+    size_t msgSize = sizeof(spi_xchng_t) + length;
+    
+    // Perform the SPI exchange via devctl
+    int ret = devctl(m_fd, DCMD_SPI_DATA_XCHNG, msg, msgSize, nullptr);
+    if (ret != EOK) {
         throw std::runtime_error(
-            "SPI read failed: " + std::string(std::strerror(errno))
+            "SPI devctl failed (errno " + std::to_string(ret) + "): " + 
+            std::string(std::strerror(ret))
         );
     }
-    if (static_cast<size_t>(bytesRead) != length) {
-        throw std::runtime_error(
-            "SPI read incomplete: read " + std::to_string(bytesRead) + 
-            " of " + std::to_string(length) + " bytes"
-        );
-    }
+    
+    // Copy RX data from response (data buffer now contains received bytes)
+    memcpy(rxBuf, msg->data, length);
 }
 
 uint16_t Mcp3008::readChannel(uint8_t channel) {

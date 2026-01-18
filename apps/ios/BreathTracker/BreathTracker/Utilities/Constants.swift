@@ -36,10 +36,11 @@ enum Constants {
     // MARK: - Polling Configuration
     enum Polling {
         /// Interval between data fetches in seconds
-        static let intervalSeconds: TimeInterval = 2.0
+        /// Set to 500ms to match the Pi's sampling rate for responsive apnea detection
+        static let intervalSeconds: TimeInterval = 0.5
         
         /// Timeout for network requests in seconds
-        static let requestTimeoutSeconds: TimeInterval = 10.0
+        static let requestTimeoutSeconds: TimeInterval = 5.0
     }
     
     // MARK: - WebSocket Configuration
@@ -62,8 +63,9 @@ enum Constants {
     
     // MARK: - UI Configuration
     enum UI {
-        /// Threshold for "low" signal quality (below this shows warning)
-        static let lowSignalQualityThreshold: Double = 0.7
+        /// Threshold for shallow breathing warning (ADC units)
+        /// Below this value shows a warning for very shallow breaths
+        static let shallowBreathThreshold: Int = 100
         
         /// Normal breathing rate range
         static let normalBreathingRateRange = 12...20

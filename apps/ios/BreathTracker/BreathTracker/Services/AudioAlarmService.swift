@@ -19,6 +19,7 @@ final class AudioAlarmService: AudioAlarmServiceProtocol, ObservableObject {
     // MARK: - Properties
     
     private var audioPlayer: AVAudioPlayer?
+    private var fallbackTimer: Timer?
     
     @Published private(set) var isPlaying: Bool = false
     
@@ -26,6 +27,10 @@ final class AudioAlarmService: AudioAlarmServiceProtocol, ObservableObject {
     
     init() {
         configureAudioSession()
+    }
+    
+    deinit {
+        stopAlarm()
     }
     
     // MARK: - Private Methods
@@ -87,20 +92,32 @@ final class AudioAlarmService: AudioAlarmServiceProtocol, ObservableObject {
     func stopAlarm() {
         audioPlayer?.stop()
         audioPlayer = nil
+        fallbackTimer?.invalidate()
+        fallbackTimer = nil
         isPlaying = false
     }
     
     // MARK: - Fallback
     
     /// Play a system sound as fallback if custom alarm file is not available
+    /// Uses a timer to loop the alert sound
     private func playSystemSoundFallback() {
-        // Use a system sound as fallback
-        // This will play once - for continuous alert, we'd need to implement a timer
-        AudioServicesPlayAlertSound(SystemSoundID(1005)) // SMS alert sound
         isPlaying = true
         
-        // TODO: Implement looping for system sound fallback if needed
-        // For MVP, the custom alarm.wav should be provided
+        // Play immediately
+        playAlertSound()
+        
+        // Loop the alert sound every 0.8 seconds for urgent alarm effect
+        fallbackTimer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
+            self?.playAlertSound()
+        }
+    }
+    
+    /// Play the system alert sound with vibration
+    private func playAlertSound() {
+        // 1005 = SMS Received (Alert) - a distinctive alert tone
+        // Also triggers vibration on iPhone
+        AudioServicesPlayAlertSound(SystemSoundID(1005))
     }
 }
 

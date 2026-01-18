@@ -1,7 +1,58 @@
 import Foundation
 
+// MARK: - API Response Wrapper
+
+/// Generic wrapper for backend API responses
+struct ApiResponse<T: Decodable>: Decodable {
+    let success: Bool
+    let data: T?
+    let timestamp: Int
+}
+
+/// Response wrapper specifically for latest breathing data (data can be null)
+struct LatestBreathingResponse: Decodable {
+    let success: Bool
+    let data: BreathingData?
+    let timestamp: Int
+}
+
+/// Response wrapper for history endpoint
+struct HistoryApiResponse: Decodable {
+    let success: Bool
+    let data: HistoryData
+    let timestamp: Int
+    
+    struct HistoryData: Decodable {
+        let samples: [BreathingData]
+        let count: Int
+        let hasMore: Bool
+    }
+}
+
+// MARK: - Breath Depth Category
+
+/// Categories for breath depth display
+enum BreathDepthCategory: String {
+    case shallow = "Shallow"
+    case normal = "Normal"
+    case deep = "Deep"
+    
+    /// Get category from ADC amplitude value
+    static func from(adcValue: Int) -> BreathDepthCategory {
+        if adcValue < 150 {
+            return .shallow
+        } else if adcValue < 400 {
+            return .normal
+        } else {
+            return .deep
+        }
+    }
+}
+
+// MARK: - Breathing Data Model
+
 /// Represents a single breathing data point from the backend
-struct BreathingData: Codable, Identifiable {
+struct BreathingData: Decodable, Identifiable {
     /// Unique identifier for this data point
     let id: UUID
     
@@ -17,8 +68,8 @@ struct BreathingData: Codable, Identifiable {
     /// Whether apnea (breathing stopped) was detected
     let apneaDetected: Bool
     
-    /// Signal quality from 0.0 to 1.0
-    let signalQuality: Double
+    /// Breath depth in ADC units (0-1023, higher = deeper breaths)
+    let breathDepth: Int
     
     /// Computed property to determine if breathing has stopped
     var isBreathingStopped: Bool {
@@ -34,40 +85,88 @@ struct BreathingData: Codable, Identifiable {
         return formatter.string(from: date)
     }
     
-    /// Signal quality as a percentage string
-    var signalQualityPercent: String {
-        "\(Int(signalQuality * 100))%"
+    /// Breath depth as a category (Shallow/Normal/Deep)
+    var breathDepthCategory: BreathDepthCategory {
+        BreathDepthCategory.from(adcValue: breathDepth)
     }
     
-    // Custom decoding to handle backend format (id may not be present)
+    /// Breath depth display string
+    var breathDepthDisplay: String {
+        breathDepthCategory.rawValue
+    }
+    
+    // Custom decoding to handle backend format differences
+    // Backend uses: breathLengthMs, apneaRisk (string), breathDepth
+    // iOS uses: breathIntervalMs, apneaDetected (bool), breathDepth
     enum CodingKeys: String, CodingKey {
         case id
         case timestamp
         case breathingRate
-        case breathIntervalMs
-        case apneaDetected
-        case signalQuality
+        case breathLengthMs      // Backend field name
+        case breathIntervalMs    // Fallback for mock data
+        case apneaRisk           // Backend field name (string: "NONE", "LOW", "MEDIUM", "HIGH")
+        case apneaDetected       // Fallback for mock data
+        case breathDepth
     }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        // Generate UUID if not provided by backend
-        self.id = (try? container.decode(UUID.self, forKey: .id)) ?? UUID()
+        // Generate UUID if not provided by backend (backend sends string id)
+        if let idString = try? container.decode(String.self, forKey: .id),
+           let uuid = UUID(uuidString: idString) {
+            self.id = uuid
+        } else {
+            self.id = UUID()
+        }
+        
         self.timestamp = try container.decode(TimeInterval.self, forKey: .timestamp)
-        self.breathingRate = try container.decode(Int.self, forKey: .breathingRate)
-        self.breathIntervalMs = try container.decode(Int.self, forKey: .breathIntervalMs)
-        self.apneaDetected = try container.decode(Bool.self, forKey: .apneaDetected)
-        self.signalQuality = try container.decode(Double.self, forKey: .signalQuality)
+        
+        // Handle breathingRate as Int or Double from backend
+        if let rate = try? container.decode(Int.self, forKey: .breathingRate) {
+            self.breathingRate = rate
+        } else if let rateDouble = try? container.decode(Double.self, forKey: .breathingRate) {
+            self.breathingRate = Int(rateDouble)
+        } else {
+            self.breathingRate = 0
+        }
+        
+        // Map breathLengthMs (backend) to breathIntervalMs (iOS)
+        if let lengthMs = try? container.decode(Int.self, forKey: .breathLengthMs) {
+            self.breathIntervalMs = lengthMs
+        } else if let intervalMs = try? container.decode(Int.self, forKey: .breathIntervalMs) {
+            self.breathIntervalMs = intervalMs
+        } else {
+            self.breathIntervalMs = 0
+        }
+        
+        // Convert apneaRisk string to apneaDetected bool
+        // HIGH risk = apnea detected
+        if let riskString = try? container.decode(String.self, forKey: .apneaRisk) {
+            self.apneaDetected = (riskString == "HIGH")
+        } else if let detected = try? container.decode(Bool.self, forKey: .apneaDetected) {
+            self.apneaDetected = detected
+        } else {
+            self.apneaDetected = false
+        }
+        
+        // Breath depth as Int or Double
+        if let depth = try? container.decode(Int.self, forKey: .breathDepth) {
+            self.breathDepth = depth
+        } else if let depthDouble = try? container.decode(Double.self, forKey: .breathDepth) {
+            self.breathDepth = Int(depthDouble)
+        } else {
+            self.breathDepth = 0
+        }
     }
     
-    init(id: UUID = UUID(), timestamp: TimeInterval, breathingRate: Int, breathIntervalMs: Int, apneaDetected: Bool, signalQuality: Double) {
+    init(id: UUID = UUID(), timestamp: TimeInterval, breathingRate: Int, breathIntervalMs: Int, apneaDetected: Bool, breathDepth: Int) {
         self.id = id
         self.timestamp = timestamp
         self.breathingRate = breathingRate
         self.breathIntervalMs = breathIntervalMs
         self.apneaDetected = apneaDetected
-        self.signalQuality = signalQuality
+        self.breathDepth = breathDepth
     }
 }
 
@@ -79,7 +178,7 @@ extension BreathingData {
             breathingRate: 14,
             breathIntervalMs: 4300,
             apneaDetected: false,
-            signalQuality: 0.92
+            breathDepth: 280  // Normal depth
         )
     }
     
@@ -89,7 +188,7 @@ extension BreathingData {
             breathingRate: 0,
             breathIntervalMs: 0,
             apneaDetected: true,
-            signalQuality: 0.85
+            breathDepth: 0  // No breathing
         )
     }
     
@@ -100,7 +199,7 @@ extension BreathingData {
                 breathingRate: Int.random(in: 12...18),
                 breathIntervalMs: Int.random(in: 3500...5000),
                 apneaDetected: false,
-                signalQuality: Double.random(in: 0.85...0.98)
+                breathDepth: Int.random(in: 200...400)  // Normal range
             )
         }
     }

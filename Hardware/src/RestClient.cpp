@@ -126,6 +126,11 @@ RestClient::Response RestClient::post(const std::string& endpoint, const std::st
     curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(m_curl, CURLOPT_MAXREDIRS, 3L);
     
+    // Skip SSL certificate verification (needed on embedded systems without CA bundle)
+    // For production, install proper CA certificates instead
+    curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    
     // Perform request
     CURLcode res = curl_easy_perform(m_curl);
     

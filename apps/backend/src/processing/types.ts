@@ -38,7 +38,7 @@ export interface BreathingMetrics {
   breathingRate: number;      // breaths per minute
   breathLengthMs: number;     // average breath length
   variability: number;        // coefficient of variation
-  signalQuality: number;      // 0-1 quality score
+  breathDepth: number;        // average peak-to-valley amplitude (ADC units, 0-1023)
 }
 
 /**

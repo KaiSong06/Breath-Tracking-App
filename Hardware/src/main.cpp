@@ -6,9 +6,10 @@
  * an MCP3008 ADC and sending them to a Railway-hosted REST API.
  * 
  * Environment variables:
- *   RAILWAY_API_URL - Base URL of the REST API (required)
- *   SPI_DEVICE      - Path to SPI device (optional, default: /dev/spi0)
+ *   RAILWAY_API_URL  - Base URL of the REST API (required)
+ *   SPI_DEVICE       - Path to SPI device (optional, default: /dev/spi0)
  *   POLL_INTERVAL_MS - Polling interval in milliseconds (optional, default: 500)
+ *   SIMULATE         - Set to "1" to use simulated breathing data (no hardware needed)
  * 
  * Exit codes:
  *   0 - Normal termination (via signal)
@@ -32,8 +33,11 @@
 #include <time.h>
 #include <iomanip>
 #include <sstream>
+#include <cmath>
 
 namespace {
+    /// Simulation mode flag
+    bool g_simulateMode = false;
     /// Reference voltage for ADC (3.3V for Raspberry Pi)
     constexpr double VREF = 3.3;
     
@@ -43,8 +47,8 @@ namespace {
     /// ADC channel connected to potentiometer
     constexpr uint8_t POT_CHANNEL = 0;
     
-    /// Default SPI device path
-    constexpr const char* DEFAULT_SPI_DEVICE = "/dev/spi0";
+    /// Default SPI device path (QNX spi-dwc driver)
+    constexpr const char* DEFAULT_SPI_DEVICE = "/dev/io-spi/spi0/dev0";
     
     /// Default polling interval in milliseconds
     constexpr int DEFAULT_POLL_INTERVAL_MS = 500;
@@ -125,6 +129,36 @@ void sleepMs(int milliseconds) {
     nanosleep(&ts, nullptr);
 }
 
+/**
+ * @brief Generate simulated breathing data
+ * Produces a realistic sine wave pattern that simulates breathing
+ * @return Simulated ADC value (0-1023)
+ */
+uint16_t getSimulatedBreathValue() {
+    static uint32_t sampleIndex = 0;
+    
+    // Breathing cycle: ~12-20 breaths per minute = 3-5 second cycle
+    // At 500ms poll interval, one breath cycle = ~8 samples (4 seconds)
+    const double breathCycleLength = 8.0;  // samples per breath
+    const double phase = (sampleIndex++ % static_cast<uint32_t>(breathCycleLength * 2)) / breathCycleLength;
+    
+    // Sine wave centered at 512 with amplitude of ~300
+    // This simulates the pressure sensor varying with breathing
+    const double centerValue = 512.0;
+    const double amplitude = 300.0;
+    
+    // Add small random variation for realism
+    double noise = (std::rand() % 20) - 10;  // +/- 10
+    
+    double value = centerValue + amplitude * std::sin(phase * M_PI) + noise;
+    
+    // Clamp to valid ADC range
+    if (value < 0) value = 0;
+    if (value > 1023) value = 1023;
+    
+    return static_cast<uint16_t>(value);
+}
+
 int main() {
     // Setup signal handlers for graceful shutdown
     std::signal(SIGINT, signalHandler);
@@ -196,8 +230,8 @@ int main() {
             
             if (response.success) {
                 if (response.httpCode >= 200 && response.httpCode < 300) {
-                    // Success - log periodically (every 100 samples)
-                    if (sampleCount % 100 == 0) {
+                    // Success - log periodically (every 10 samples)
+                    if (sampleCount % 10 == 0) {
                         logInfo("Sent " + std::to_string(sampleCount) + 
                                " samples, last: raw=" + std::to_string(rawValue) + 
                                ", voltage=" + std::to_string(voltage) + "V");

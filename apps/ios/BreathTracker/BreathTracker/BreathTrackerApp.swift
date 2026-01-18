@@ -4,16 +4,17 @@ import SwiftUI
 @main
 struct BreathTrackerApp: App {
     
+    // MARK: - Configuration
+    
+    /// Set to true to use mock data instead of real API polling (for testing without backend)
+    private static let useMockData = false
+    
     // MARK: - Services (Dependency Injection)
     
     /// Data service for breathing data
-    /// TODO: Switch to PollingService or WebSocketService when backend is ready
-    /// For development, MockPollingService provides simulated data
-    #if DEBUG
-    private let dataService: MockPollingService = MockPollingService()
-    #else
+    /// Uses real PollingService to fetch live data from the backend
+    /// Set useMockData = true above to use simulated data for testing
     private let dataService: PollingService = PollingService()
-    #endif
     
     /// Audio alarm service for apnea alerts
     private let alarmService: AudioAlarmService = AudioAlarmService()
@@ -27,11 +28,13 @@ struct BreathTrackerApp: App {
     
     init() {
         // Create view models with injected dependencies
-        #if DEBUG
-        let dataService = MockPollingService()
-        #else
-        let dataService = PollingService()
-        #endif
+        // Use real polling service for live data from the Raspberry Pi
+        let dataService: any BreathingDataService
+        if Self.useMockData {
+            dataService = MockPollingService()
+        } else {
+            dataService = PollingService()
+        }
         
         let alarmService = AudioAlarmService()
         

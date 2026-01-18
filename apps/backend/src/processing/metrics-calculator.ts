@@ -17,13 +17,13 @@ export class MetricsCalculator {
     const breathingRate = this.calculateBreathingRate(peaks, timeWindowSeconds);
     const breathLengthMs = this.calculateAverageBreathLength(peaks);
     const variability = this.calculateVariability(peaks);
-    const signalQuality = this.calculateSignalQuality(samples, peaks);
+    const breathDepth = this.calculateBreathDepth(samples, peaks);
 
     return {
       breathingRate,
       breathLengthMs,
       variability,
-      signalQuality,
+      breathDepth,
     };
   }
 
@@ -111,71 +111,30 @@ export class MetricsCalculator {
   }
 
   /**
-   * Calculate signal quality (0-1)
-   * Based on:
-   * - Signal amplitude consistency
-   * - Noise level
-   * - Peak regularity
+   * Calculate breath depth (average peak-to-valley amplitude)
+   * Returns the amplitude in ADC units (0-1023 range)
+   * Higher values indicate deeper breaths
    */
-  private calculateSignalQuality(samples: RawBreathSample[], peaks: Peak[]): number {
+  private calculateBreathDepth(samples: RawBreathSample[], peaks: Peak[]): number {
     if (samples.length < 10) {
       return 0;
     }
 
     const values = samples.map(s => s.rawValue);
     
-    // 1. Amplitude score: Check if signal has sufficient range
+    // Calculate overall range as a simple measure of breath depth
     const min = Math.min(...values);
     const max = Math.max(...values);
     const range = max - min;
-    const amplitudeScore = Math.min(range / 500, 1); // Expect at least 500 units of range
 
-    // 2. Noise score: Check signal-to-noise ratio
-    const noiseScore = this.calculateNoiseScore(values);
-
-    // 3. Peak regularity score
-    const regularityScore = peaks.length >= 2 
-      ? 1 - this.calculateVariability(peaks) 
-      : 0.5;
-
-    // 4. Peak detection score: Did we find reasonable number of peaks?
-    const expectedPeaksMin = (samples.length / 50) * 0.5; // Rough estimate
-    const peakScore = peaks.length >= expectedPeaksMin ? 1 : peaks.length / expectedPeaksMin;
-
-    // Weighted average
-    const quality = (
-      amplitudeScore * 0.3 +
-      noiseScore * 0.3 +
-      regularityScore * 0.2 +
-      peakScore * 0.2
-    );
-
-    return Math.min(Math.max(quality, 0), 1);
-  }
-
-  /**
-   * Calculate noise score (higher = less noise = better)
-   */
-  private calculateNoiseScore(values: number[]): number {
-    if (values.length < 3) return 0;
-
-    // Calculate differences between consecutive samples
-    const diffs: number[] = [];
-    for (let i = 1; i < values.length; i++) {
-      diffs.push(Math.abs(values[i] - values[i - 1]));
+    // If we have detected peaks, calculate average peak prominence for more accuracy
+    if (peaks.length >= 2) {
+      const avgProminence = peaks.reduce((sum, p) => sum + p.prominence, 0) / peaks.length;
+      // Use the larger of range or 2x average prominence
+      return Math.round(Math.max(range, avgProminence * 2));
     }
 
-    // High-frequency changes indicate noise
-    const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-    const range = Math.max(...values) - Math.min(...values);
-    
-    if (range === 0) return 0;
-
-    // Normalized noise ratio (lower is better)
-    const noiseRatio = avgDiff / range;
-    
-    // Convert to score (higher is better)
-    return Math.max(0, 1 - noiseRatio * 5);
+    return Math.round(range);
   }
 }
 

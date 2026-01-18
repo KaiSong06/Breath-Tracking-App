@@ -69,7 +69,7 @@ export class ProcessingPipeline {
       deviceId: sample.deviceId,
       peaksDetected: peaks.length,
       breathingRate: metrics.breathingRate,
-      signalQuality: metrics.signalQuality,
+      breathDepth: metrics.breathDepth,
       apneaRisk,
     });
 
@@ -85,13 +85,14 @@ export class ProcessingPipeline {
    */
   private evaluateApneaRisk(
     state: ProcessingState,
-    metrics: { signalQuality: number; breathingRate: number }
+    metrics: { breathDepth: number; breathingRate: number }
   ): ApneaRiskLevel {
     const now = Date.now() / 1000; // Current time in seconds
 
-    // If signal quality is too low, can't reliably detect apnea
-    if (metrics.signalQuality < config.processing.minSignalQuality) {
-      return 'MEDIUM'; // Uncertain due to poor signal
+    // If breath depth is too low, can't reliably detect breathing
+    // This could indicate sensor issue or very shallow breathing
+    if (metrics.breathDepth < 50 && metrics.breathDepth > 0) {
+      return 'MEDIUM'; // Uncertain due to weak signal
     }
 
     // Check time since last breath
@@ -136,7 +137,7 @@ export class ProcessingPipeline {
         breathingRate: 0,
         breathLengthMs: 0,
         variability: 0,
-        signalQuality: 0,
+        breathDepth: 0,
       },
       apneaRisk: 'LOW',
       lastBreathTimestamp: state.lastBreathTimestamp,

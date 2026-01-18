@@ -4,6 +4,7 @@ import type { ProcessedBreathingSample, ApneaRiskLevel } from '../types';
 
 /**
  * Database row type for processed samples
+ * Note: DB column is still named 'signal_quality' but we map it to breathDepth
  */
 interface ProcessedSampleRow {
   id: string;
@@ -12,7 +13,7 @@ interface ProcessedSampleRow {
   breathing_rate: string;
   breath_length_ms: number;
   variability: string;
-  signal_quality: string;
+  signal_quality: string;  // DB column name (stores breath depth value)
   apnea_risk: ApneaRiskLevel;
   created_at: Date;
 }
@@ -28,7 +29,7 @@ function rowToSample(row: ProcessedSampleRow): ProcessedBreathingSample {
     breathingRate: parseFloat(row.breathing_rate),
     breathLengthMs: row.breath_length_ms,
     variability: parseFloat(row.variability),
-    signalQuality: parseFloat(row.signal_quality),
+    breathDepth: parseFloat(row.signal_quality),  // Map DB column to breathDepth
     apneaRisk: row.apnea_risk,
   };
 }
@@ -54,7 +55,7 @@ export const processedSamplesRepo = {
         sample.breathingRate,
         sample.breathLengthMs,
         sample.variability,
-        sample.signalQuality,
+        sample.breathDepth,  // Stored in signal_quality column
         sample.apneaRisk,
       ]
     );

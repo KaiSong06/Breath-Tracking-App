@@ -37,7 +37,8 @@ final class LiveBreathingViewModel: ObservableObject {
             return .warning
         }
         
-        if data.signalQuality < Constants.UI.lowSignalQualityThreshold {
+        // Warn on very shallow breathing
+        if data.breathDepth < Constants.UI.shallowBreathThreshold && data.breathDepth > 0 {
             return .warning
         }
         
@@ -49,9 +50,14 @@ final class LiveBreathingViewModel: ObservableObject {
         currentData?.breathingRate ?? 0
     }
     
-    /// Current signal quality for display
-    var displaySignalQuality: Double {
-        currentData?.signalQuality ?? 0.0
+    /// Current breath depth for display
+    var displayBreathDepth: Int {
+        currentData?.breathDepth ?? 0
+    }
+    
+    /// Current breath depth category for display
+    var displayBreathDepthCategory: String {
+        currentData?.breathDepthDisplay ?? "Unknown"
     }
     
     /// Formatted last update time

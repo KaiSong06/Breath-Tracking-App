@@ -44,7 +44,7 @@ enum BreathingStatus {
 struct BreathingStatusCard: View {
     let breathingRate: Int
     let status: BreathingStatus
-    let signalQuality: Double
+    let breathDepth: Int
     
     var body: some View {
         VStack(spacing: 20) {
@@ -82,8 +82,8 @@ struct BreathingStatusCard: View {
                         .fill(status.color.opacity(0.12))
                 )
             
-            // Signal Quality Indicator
-            SignalQualityView(quality: signalQuality)
+            // Breath Depth Indicator
+            BreathDepthView(depth: breathDepth)
         }
         .padding(30)
         .frame(maxWidth: .infinity)
@@ -105,35 +105,51 @@ struct BreathingStatusCard: View {
     }
 }
 
-/// Signal quality indicator view
-struct SignalQualityView: View {
-    let quality: Double
+/// Breath depth indicator view
+struct BreathDepthView: View {
+    let depth: Int
     
-    private var qualityColor: Color {
-        if quality >= 0.8 {
-            return Theme.statusNormal
-        } else if quality >= 0.6 {
+    private var category: BreathDepthCategory {
+        BreathDepthCategory.from(adcValue: depth)
+    }
+    
+    private var depthColor: Color {
+        switch category {
+        case .shallow:
             return Theme.statusWarning
-        } else {
-            return Theme.statusCritical
+        case .normal:
+            return Theme.statusNormal
+        case .deep:
+            return Theme.primary
+        }
+    }
+    
+    private var icon: String {
+        switch category {
+        case .shallow:
+            return "arrow.down.to.line"
+        case .normal:
+            return "arrow.up.arrow.down"
+        case .deep:
+            return "arrow.up.to.line"
         }
     }
     
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "antenna.radiowaves.left.and.right")
-                .foregroundColor(qualityColor)
+            Image(systemName: icon)
+                .foregroundColor(depthColor)
             
-            Text("Signal: \(Int(quality * 100))%")
+            Text("Depth: \(category.rawValue)")
                 .font(.caption)
                 .foregroundColor(Theme.textSecondary)
             
-            // Signal bars
-            HStack(spacing: 2) {
-                ForEach(0..<4) { index in
+            // Depth bars (3 levels)
+            HStack(spacing: 3) {
+                ForEach(0..<3) { index in
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(index < Int(quality * 4) ? qualityColor : Theme.primary.opacity(0.2))
-                        .frame(width: 6, height: CGFloat(8 + index * 4))
+                        .fill(index < depthLevel ? depthColor : Theme.primary.opacity(0.2))
+                        .frame(width: 8, height: CGFloat(10 + index * 5))
                 }
             }
         }
@@ -143,6 +159,14 @@ struct SignalQualityView: View {
             Capsule()
                 .fill(Theme.secondaryBackground)
         )
+    }
+    
+    private var depthLevel: Int {
+        switch category {
+        case .shallow: return 1
+        case .normal: return 2
+        case .deep: return 3
+        }
     }
 }
 
@@ -157,13 +181,13 @@ struct BreathingStatusCard_Previews: PreviewProvider {
                 BreathingStatusCard(
                     breathingRate: 14,
                     status: .normal,
-                    signalQuality: 0.92
+                    breathDepth: 280
                 )
                 
                 BreathingStatusCard(
                     breathingRate: 8,
                     status: .warning,
-                    signalQuality: 0.65
+                    breathDepth: 80
                 )
             }
             .padding()

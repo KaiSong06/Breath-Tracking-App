@@ -28,17 +28,12 @@ struct LiveBreathingView: View {
                         BreathingStatusCard(
                             breathingRate: viewModel.displayBreathingRate,
                             status: viewModel.breathingStatus,
-                            signalQuality: viewModel.displaySignalQuality
+                            breathDepth: viewModel.displayBreathDepth
                         )
                         .padding(.horizontal)
                         
                         // Last Update Time
                         lastUpdateSection
-                        
-                        // Debug Controls (for development)
-                        #if DEBUG
-                        debugSection
-                        #endif
                         
                         Spacer(minLength: 100)
                     }
@@ -122,44 +117,6 @@ struct LiveBreathingView: View {
         )
         .padding(.horizontal)
     }
-    
-    #if DEBUG
-    private var debugSection: some View {
-        VStack(spacing: 12) {
-            Text("Debug Controls")
-                .font(.caption)
-                .foregroundColor(Theme.textSecondary)
-            
-            HStack(spacing: 16) {
-                Button("Simulate Apnea") {
-                    simulateApnea(true)
-                }
-                .buttonStyle(.bordered)
-                .tint(.red)
-                
-                Button("Normal") {
-                    simulateApnea(false)
-                }
-                .buttonStyle(.bordered)
-                .tint(.green)
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.6))
-        )
-        .padding(.horizontal)
-    }
-    
-    private func simulateApnea(_ enabled: Bool) {
-        // This only works with MockPollingService
-        // In production, this section won't be visible
-        if let mockService = (viewModel as AnyObject).value(forKey: "dataService") as? MockPollingService {
-            mockService.simulateApnea(enabled)
-        }
-    }
-    #endif
 }
 
 // MARK: - Preview

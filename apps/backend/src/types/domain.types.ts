@@ -22,7 +22,7 @@ export interface ProcessedBreathingSample {
   breathingRate: number;      // Breaths per minute
   breathLengthMs: number;     // Average breath length in milliseconds
   variability: number;        // Coefficient of variation (0-1)
-  signalQuality: number;      // Signal quality score (0-1)
+  breathDepth: number;        // Average breath amplitude (ADC units, 0-1023)
   apneaRisk: ApneaRiskLevel;
 }
 

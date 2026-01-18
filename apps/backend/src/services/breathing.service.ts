@@ -40,7 +40,7 @@ class BreathingService {
       breathingRate: Math.round(result.metrics.breathingRate * 100) / 100,
       breathLengthMs: result.metrics.breathLengthMs,
       variability: Math.round(result.metrics.variability * 10000) / 10000,
-      signalQuality: Math.round(result.metrics.signalQuality * 100) / 100,
+      breathDepth: result.metrics.breathDepth,
       apneaRisk: result.apneaRisk,
     };
 

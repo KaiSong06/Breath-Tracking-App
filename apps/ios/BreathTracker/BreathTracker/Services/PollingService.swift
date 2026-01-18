@@ -87,8 +87,10 @@ final class PollingService: BreathingDataService {
             }
             
             let decoder = JSONDecoder()
-            let history = try decoder.decode([BreathingData].self, from: data)
-            return history
+            
+            // Decode the API response wrapper
+            let apiResponse = try decoder.decode(HistoryApiResponse.self, from: data)
+            return apiResponse.data.samples
             
         } catch let error as BreathingDataError {
             throw error
@@ -122,9 +124,12 @@ final class PollingService: BreathingDataService {
             }
             
             let decoder = JSONDecoder()
-            let breathingData = try decoder.decode(BreathingData.self, from: data)
             
-            latestData = breathingData
+            // Decode the API response wrapper
+            let apiResponse = try decoder.decode(LatestBreathingResponse.self, from: data)
+            
+            // Extract the breathing data from the response (may be null if no data yet)
+            latestData = apiResponse.data
             connectionState = .connected
             
         } catch {
@@ -191,7 +196,7 @@ final class MockPollingService: BreathingDataService {
                 breathingRate: Int.random(in: 12...18),
                 breathIntervalMs: Int.random(in: 3500...5000),
                 apneaDetected: false,
-                signalQuality: Double.random(in: 0.85...0.98)
+                breathDepth: Int.random(in: 200...400)
             )
         }
     }

@@ -30,23 +30,24 @@ class AlertService {
         'APNEA_DETECTED',
         'CRITICAL',
         'Breathing has stopped - immediate attention required',
-        { breathingRate: sample.breathingRate, signalQuality: sample.signalQuality }
+        { breathingRate: sample.breathingRate, breathDepth: sample.breathDepth }
       );
     }
 
-    // Check for low signal quality
-    if (sample.signalQuality < 0.3) {
+    // Check for very shallow breathing (low breath depth)
+    // Less than 50 ADC units indicates very shallow breaths or sensor issue
+    if (sample.breathDepth < 50 && sample.breathDepth > 0) {
       return this.createAlertIfNotCooldown(
         sample.deviceId,
         'LOW_SIGNAL_QUALITY',
         'WARNING',
-        'Sensor signal quality is low - check sensor placement',
-        { signalQuality: sample.signalQuality }
+        'Very shallow breathing detected - check sensor placement',
+        { breathDepth: sample.breathDepth }
       );
     }
 
     // Check for irregular breathing (high variability)
-    if (sample.variability > 0.5 && sample.signalQuality > 0.5) {
+    if (sample.variability > 0.5 && sample.breathDepth > 100) {
       return this.createAlertIfNotCooldown(
         sample.deviceId,
         'IRREGULAR_BREATHING',

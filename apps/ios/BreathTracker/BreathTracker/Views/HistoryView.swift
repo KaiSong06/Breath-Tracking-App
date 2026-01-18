@@ -166,7 +166,7 @@ struct HistoryRowView: View {
                     
                     Spacer()
                     
-                    Text("Signal: \(data.signalQualityPercent)")
+                    Text("Depth: \(data.breathDepthDisplay)")
                         .font(.caption)
                         .foregroundColor(Theme.textSecondary)
                 }
