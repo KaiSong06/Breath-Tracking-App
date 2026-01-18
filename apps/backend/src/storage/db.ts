@@ -147,7 +147,7 @@ export async function initSchema(): Promise<void> {
       breathing_rate DECIMAL(5,2) NOT NULL,
       breath_length_ms INTEGER NOT NULL,
       variability DECIMAL(5,4) NOT NULL,
-      signal_quality DECIMAL(3,2) NOT NULL,
+      signal_quality INTEGER NOT NULL,
       apnea_risk VARCHAR(10) NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
