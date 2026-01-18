@@ -21,22 +21,22 @@ export const config = {
   // Signal Processing
   processing: {
     /** Time without breath detection to trigger HIGH apnea risk (ms) */
-    apneaThresholdMs: parseInt(process.env.APNEA_THRESHOLD_MS || '5000', 10),
+    apneaThresholdMs: parseInt(process.env.APNEA_THRESHOLD_MS || '6000', 10),
     
     /** Minimum signal quality to consider readings valid (0-1) */
     minSignalQuality: parseFloat(process.env.MIN_SIGNAL_QUALITY || '0.3'),
     
     /** Number of samples to keep in rolling buffer */
-    sampleBufferSize: parseInt(process.env.SAMPLE_BUFFER_SIZE || '30', 10),
+    sampleBufferSize: parseInt(process.env.SAMPLE_BUFFER_SIZE || '40', 10),
     
-    /** Minimum peak prominence to detect a breath */
-    peakProminence: parseInt(process.env.PEAK_PROMINENCE || '50', 10),
+    /** Minimum peak prominence to detect a breath (ADC units, higher = less sensitive) */
+    peakProminence: parseInt(process.env.PEAK_PROMINENCE || '80', 10),
     
-    /** Minimum time between peaks (ms) - prevents double-counting */
-    minPeakDistanceMs: parseInt(process.env.MIN_PEAK_DISTANCE_MS || '1000', 10),
+    /** Minimum time between peaks (ms) - 2000ms = max 30 breaths/min */
+    minPeakDistanceMs: parseInt(process.env.MIN_PEAK_DISTANCE_MS || '2000', 10),
     
-    /** Maximum expected breathing rate (breaths/min) */
-    maxBreathingRate: parseInt(process.env.MAX_BREATHING_RATE || '60', 10),
+    /** Maximum expected breathing rate (breaths/min) - normal adult is 12-20 */
+    maxBreathingRate: parseInt(process.env.MAX_BREATHING_RATE || '30', 10),
     
     /** Minimum expected breathing rate (breaths/min) */
     minBreathingRate: parseInt(process.env.MIN_BREATHING_RATE || '4', 10),
