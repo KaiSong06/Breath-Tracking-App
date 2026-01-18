@@ -30,13 +30,13 @@ export const config = {
     sampleBufferSize: parseInt(process.env.SAMPLE_BUFFER_SIZE || '40', 10),
     
     /** Minimum peak prominence to detect a breath (ADC units, higher = less sensitive) */
-    peakProminence: parseInt(process.env.PEAK_PROMINENCE || '80', 10),
+    peakProminence: parseInt(process.env.PEAK_PROMINENCE || '120', 10),
     
-    /** Minimum time between peaks (ms) - 2000ms = max 30 breaths/min */
-    minPeakDistanceMs: parseInt(process.env.MIN_PEAK_DISTANCE_MS || '2000', 10),
+    /** Minimum time between peaks (ms) - 2500ms = max 24 breaths/min */
+    minPeakDistanceMs: parseInt(process.env.MIN_PEAK_DISTANCE_MS || '2500', 10),
     
     /** Maximum expected breathing rate (breaths/min) - normal adult is 12-20 */
-    maxBreathingRate: parseInt(process.env.MAX_BREATHING_RATE || '30', 10),
+    maxBreathingRate: parseInt(process.env.MAX_BREATHING_RATE || '24', 10),
     
     /** Minimum expected breathing rate (breaths/min) */
     minBreathingRate: parseInt(process.env.MIN_BREATHING_RATE || '4', 10),
