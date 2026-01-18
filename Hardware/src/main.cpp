@@ -51,7 +51,7 @@ namespace {
     constexpr const char* DEFAULT_SPI_DEVICE = "/dev/io-spi/spi0/dev0";
     
     /// Default polling interval in milliseconds
-    constexpr int DEFAULT_POLL_INTERVAL_MS = 500;
+    constexpr int DEFAULT_POLL_INTERVAL_MS = 250;
     
     /// API endpoint for posting sensor data
     constexpr const char* API_ENDPOINT = "/api/v1/breathing/raw";
@@ -230,8 +230,8 @@ int main() {
             
             if (response.success) {
                 if (response.httpCode >= 200 && response.httpCode < 300) {
-                    // Success - log periodically (every 10 samples)
-                    if (sampleCount % 10 == 0) {
+                    // Success - log every 5 samples
+                    if (sampleCount % 5 == 0) {
                         logInfo("Sent " + std::to_string(sampleCount) + 
                                " samples, last: raw=" + std::to_string(rawValue) + 
                                ", voltage=" + std::to_string(voltage) + "V");

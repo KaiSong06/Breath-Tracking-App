@@ -40,7 +40,7 @@ export class ProcessingPipeline {
     }
 
     // Need minimum samples to process
-    if (state.sampleBuffer.length < 10) {
+    if (state.sampleBuffer.length < 5) {
       return this.createEmptyResult(state);
     }
 
