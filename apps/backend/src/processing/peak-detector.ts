@@ -42,9 +42,8 @@ export class PeakDetector {
     const maxVal = Math.max(...values);
     const signalRange = maxVal - minVal;
     
-    // Require at least 500 ADC units of range (about half the 10-bit ADC range)
-    // This filters out electrical noise which can be 200-300 units
-    const minRequiredRange = Math.max(500, this.minProminence * 2);
+    // Require at least 350 ADC units of range to filter out noise
+    const minRequiredRange = Math.max(350, this.minProminence * 1.5);
     if (signalRange < minRequiredRange) {
       // Signal is too flat - no real breathing detected
       return { peaks: [], valleys: [] };
